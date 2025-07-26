@@ -181,6 +181,10 @@ class Game {
     }
 
     async fetchVersionFromGitHub() {
+        // TEMPORARY: Clear cache to force fresh calculation
+        localStorage.removeItem('version-cache-time-v3');
+        localStorage.removeItem('cached-version-v3');
+        
         // Check cache first (cache for 5 minutes for faster testing)
         const cacheTime = localStorage.getItem('version-cache-time-v3');
         const cachedVersion = localStorage.getItem('cached-version-v3');
@@ -248,32 +252,42 @@ class Game {
             console.log('Fetched commit history:', commits.length, 'commits');
 
             // Start with base version and calculate increments from commit history
-            let major = 1, minor = 0, patch = 0; // Starting version 1.0.0
+            let major = 0, minor = 0, patch = 0; // Starting version 0.0.0
             
             // Process commits from oldest to newest (reverse order)
             const reversedCommits = commits.slice().reverse();
+            console.log('Processing commits in chronological order...');
             
             for (const commit of reversedCommits) {
                 const msg = commit.commit.message.toLowerCase();
-                console.log('Processing commit:', commit.sha.substring(0, 7), msg);
+                const shortSha = commit.sha.substring(0, 7);
                 
                 // Only process version-related commits
                 if (msg.includes('version') || msg.includes('major') || msg.includes('minor') || 
                     msg.includes('patch') || msg.includes('feature') || msg.includes('breaking')) {
                     
+                    console.log(`Processing version commit ${shortSha}: "${msg}"`);
+                    
                     if (msg.includes('major') || msg.includes('breaking')) {
                         major += 1;
                         minor = 0;
                         patch = 0;
-                        console.log(`Major version increment: ${major}.${minor}.${patch}`);
-                    } else if (msg.includes('minor') || msg.includes('feature') || msg.includes('add')) {
+                        console.log(`  → Major version increment: ${major}.${minor}.${patch}`);
+                    } else if ((msg.includes('minor') && !msg.includes('patch')) || 
+                               (msg.includes('feature') && !msg.includes('patch') && !msg.includes('version'))) {
                         minor += 1;
                         patch = 0;
-                        console.log(`Minor version increment: ${major}.${minor}.${patch}`);
+                        console.log(`  → Minor version increment: ${major}.${minor}.${patch}`);
                     } else if (msg.includes('patch') || msg.includes('version')) {
                         patch += 1;
-                        console.log(`Patch version increment: ${major}.${minor}.${patch}`);
+                        console.log(`  → Patch version increment: ${major}.${minor}.${patch}`);
+                    } else {
+                        // Default fallback for version-related commits
+                        patch += 1;
+                        console.log(`  → Default patch increment: ${major}.${minor}.${patch}`);
                     }
+                } else {
+                    console.log(`Skipping non-version commit ${shortSha}: "${msg}"`);
                 }
             }
 
@@ -286,17 +300,17 @@ class Game {
             console.warn('Failed to fetch commit history, falling back to simple increment:', error);
             
             // Fallback: use a reasonable base version and simple increment
-            let major = 1, minor = 0, patch = 1; // Start at 1.0.1 as reasonable fallback
+            let major = 0, minor = 0, patch = 1; // Start at 0.0.1 as reasonable fallback
             
             if (commitMessage.includes('major') || commitMessage.includes('breaking')) {
-                major = 2;
+                major = 1;
                 minor = 0;
                 patch = 0;
             } else if (commitMessage.includes('minor') || commitMessage.includes('feature') || commitMessage.includes('add')) {
                 minor = 1;
                 patch = 0;
             } else if (commitMessage.includes('patch') || commitMessage.includes('version')) {
-                patch = 2; // Since we're starting at 1.0.1, increment to 1.0.2
+                patch = 1; // First patch version
             }
             
             return `${major}.${minor}.${patch}`;
