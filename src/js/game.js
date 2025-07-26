@@ -119,20 +119,35 @@ class Game {
     }
 
     displayVersion() {
-        // Try to fetch version from version.ver file
-        fetch('./version.ver')
-            .then(response => response.text())
+        // Try to fetch version from version.ver file with aggressive cache busting
+        const timestamp = new Date().getTime();
+        const randomParam = Math.random().toString(36).substring(7);
+        
+        fetch(`./version.ver?t=${timestamp}&r=${randomParam}`, {
+            cache: 'no-cache',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.text();
+            })
             .then(version => {
                 const versionDiv = document.getElementById('version-info');
                 if (versionDiv) {
                     versionDiv.textContent = `v${version.trim()}`;
                 }
             })
-            .catch(() => {
-                // Fallback to package.json version or default
+            .catch((error) => {
+                console.warn('Version fetch failed, using fallback:', error);
+                // Fallback to package.json version
                 const versionDiv = document.getElementById('version-info');
                 if (versionDiv) {
-                    versionDiv.textContent = 'v0.1.0';
+                    versionDiv.textContent = 'v1.0.0';
                 }
             });
     }

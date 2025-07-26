@@ -10,7 +10,8 @@
     "version:major": "node scripts/version-manager.js major",
     "version:minor": "node scripts/version-manager.js minor",
     "version:patch": "node scripts/version-manager.js patch",
-    "version:current": "node scripts/version-manager.js current"
+    "version:current": "node scripts/version-manager.js current",
+    "version:sync": "powershell -ExecutionPolicy Bypass -File scripts\\sync-version.ps1"
   },
   "keywords": [
     "game",
