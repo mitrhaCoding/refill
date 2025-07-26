@@ -133,12 +133,14 @@ class Game {
             // Try to fetch version from GitHub API first
             console.log('Attempting GitHub version fetch...');
             const githubVersion = await this.fetchVersionFromGitHub();
+            console.log('GitHub version result:', githubVersion);
             if (githubVersion) {
                 console.log('GitHub version success:', githubVersion);
                 versionDiv.textContent = `v${githubVersion}`;
-                // Cache the version for future use (v2 cache keys)
-                localStorage.setItem('cached-version-v2', githubVersion);
-                localStorage.setItem('version-cache-time-v2', Date.now().toString());
+                // Cache the version for future use (v3 cache keys)
+                localStorage.setItem('cached-version-v3', githubVersion);
+                localStorage.setItem('version-cache-time-v3', Date.now().toString());
+                console.log('Version displayed successfully:', `v${githubVersion}`);
                 return;
             }
         } catch (error) {
@@ -170,7 +172,7 @@ class Game {
         }
 
         // Final fallback - use cached version or default
-        const cachedVersion = localStorage.getItem('cached-version-v2');
+        const cachedVersion = localStorage.getItem('cached-version-v3');
         if (cachedVersion) {
             versionDiv.textContent = `v${cachedVersion} (cached)`;
         } else {
@@ -179,12 +181,12 @@ class Game {
     }
 
     async fetchVersionFromGitHub() {
-        // Check cache first (cache for 1 hour) - using v2 to bust old cache with timestamps
-        const cacheTime = localStorage.getItem('version-cache-time-v2');
-        const cachedVersion = localStorage.getItem('cached-version-v2');
-        const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+        // Check cache first (cache for 5 minutes for faster testing)
+        const cacheTime = localStorage.getItem('version-cache-time-v3');
+        const cachedVersion = localStorage.getItem('cached-version-v3');
+        const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
         
-        if (cacheTime && cachedVersion && (Date.now() - parseInt(cacheTime)) < oneHour) {
+        if (cacheTime && cachedVersion && (Date.now() - parseInt(cacheTime)) < fiveMinutes) {
             console.log('Using cached GitHub version:', cachedVersion);
             return cachedVersion;
         }
@@ -193,7 +195,9 @@ class Game {
             console.log('Fetching version from GitHub API...');
             
             // Fetch latest commit from GitHub API (using commits endpoint that works)
-            const apiUrl = 'https://api.github.com/repos/mitrhaCoding/refill/commits?per_page=1';
+            const timestamp = Date.now();
+            const apiUrl = `https://api.github.com/repos/mitrhaCoding/refill/commits?per_page=1&_t=${timestamp}`;
+            console.log('API URL:', apiUrl);
             const response = await fetch(apiUrl, {
                 headers: {
                     'Accept': 'application/vnd.github.v3+json',
@@ -224,36 +228,79 @@ class Game {
     }
 
     async generateVersionFromCommit(commitMessage, commitDate, commitHash) {
-        // Read current version from package.json as base
-        let baseVersion = '1.0.0';
+        console.log('generateVersionFromCommit called with:', { commitMessage, commitDate, commitHash });
+        
         try {
-            const packageResponse = await fetch('./package.json');
-            if (packageResponse.ok) {
-                const packageData = await packageResponse.json();
-                baseVersion = packageData.version || '1.0.0';
+            // Fetch commit history to track version progression
+            const historyUrl = `https://api.github.com/repos/mitrhaCoding/refill/commits?per_page=50&_t=${Date.now()}`;
+            const historyResponse = await fetch(historyUrl, {
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Liquid-Sort-Game-App'
+                }
+            });
+
+            if (!historyResponse.ok) {
+                throw new Error(`Failed to fetch commit history: ${historyResponse.status}`);
             }
+
+            const commits = await historyResponse.json();
+            console.log('Fetched commit history:', commits.length, 'commits');
+
+            // Start with base version and calculate increments from commit history
+            let major = 1, minor = 0, patch = 0; // Starting version 1.0.0
+            
+            // Process commits from oldest to newest (reverse order)
+            const reversedCommits = commits.slice().reverse();
+            
+            for (const commit of reversedCommits) {
+                const msg = commit.commit.message.toLowerCase();
+                console.log('Processing commit:', commit.sha.substring(0, 7), msg);
+                
+                // Only process version-related commits
+                if (msg.includes('version') || msg.includes('major') || msg.includes('minor') || 
+                    msg.includes('patch') || msg.includes('feature') || msg.includes('breaking')) {
+                    
+                    if (msg.includes('major') || msg.includes('breaking')) {
+                        major += 1;
+                        minor = 0;
+                        patch = 0;
+                        console.log(`Major version increment: ${major}.${minor}.${patch}`);
+                    } else if (msg.includes('minor') || msg.includes('feature') || msg.includes('add')) {
+                        minor += 1;
+                        patch = 0;
+                        console.log(`Minor version increment: ${major}.${minor}.${patch}`);
+                    } else if (msg.includes('patch') || msg.includes('version')) {
+                        patch += 1;
+                        console.log(`Patch version increment: ${major}.${minor}.${patch}`);
+                    }
+                }
+            }
+
+            const finalVersion = `${major}.${minor}.${patch}`;
+            console.log('Final calculated version:', finalVersion);
+            
+            return finalVersion;
+
         } catch (error) {
-            console.warn('Could not read package.json for base version:', error);
+            console.warn('Failed to fetch commit history, falling back to simple increment:', error);
+            
+            // Fallback: use a reasonable base version and simple increment
+            let major = 1, minor = 0, patch = 1; // Start at 1.0.1 as reasonable fallback
+            
+            if (commitMessage.includes('major') || commitMessage.includes('breaking')) {
+                major = 2;
+                minor = 0;
+                patch = 0;
+            } else if (commitMessage.includes('minor') || commitMessage.includes('feature') || commitMessage.includes('add')) {
+                minor = 1;
+                patch = 0;
+            } else if (commitMessage.includes('patch') || commitMessage.includes('version')) {
+                patch = 2; // Since we're starting at 1.0.1, increment to 1.0.2
+            }
+            
+            return `${major}.${minor}.${patch}`;
         }
-
-        // Parse base version
-        let [major, minor, patch] = baseVersion.split('.').map(Number);
-
-        // Simple version increment based on commit message keywords
-        if (commitMessage.includes('major') || commitMessage.includes('breaking')) {
-            major += 1;
-            minor = 0;
-            patch = 0;
-        } else if (commitMessage.includes('minor') || commitMessage.includes('feature') || commitMessage.includes('add')) {
-            minor += 1;
-            patch = 0;
-        } else {
-            // For any other commit, increment patch
-            patch += 1;
-        }
-
-        // Return clean semantic version without timestamp/hash
-        return `${major}.${minor}.${patch}`;
     }
 
     render() {
