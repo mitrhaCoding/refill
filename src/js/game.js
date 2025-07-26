@@ -62,6 +62,10 @@ class Game {
                 containerDiv.classList.add('selected');
             }
             
+            // Get consecutive liquids for highlighting
+            const consecutiveLiquids = this.selectedContainer === index ? 
+                container.getConsecutiveTopLiquids() : [];
+            
             // Create liquid layers
             const liquids = container.getContents();
             for (let i = 0; i < this.containerCapacity; i++) {
@@ -71,6 +75,17 @@ class Game {
                 if (liquids[i]) {
                     liquidDiv.style.backgroundColor = liquids[i].color;
                     liquidDiv.classList.add('filled');
+                    
+                    // Add bottom-layer class to the bottommost liquid
+                    if (i === 0 && liquids[0]) {
+                        liquidDiv.classList.add('bottom-layer');
+                    }
+                    
+                    // Highlight consecutive liquids when container is selected
+                    if (this.selectedContainer === index && 
+                        i >= liquids.length - consecutiveLiquids.length) {
+                        liquidDiv.classList.add('highlighted');
+                    }
                 } else {
                     liquidDiv.classList.add('empty');
                 }
@@ -129,8 +144,22 @@ class Game {
         const toContainer = this.containers[toIndex];
         
         if (fromContainer.canPourTo(toContainer)) {
-            const liquid = fromContainer.removeLiquid();
-            toContainer.addLiquid(liquid);
+            // Get all consecutive liquids of the same color from the top
+            const consecutiveLiquids = fromContainer.getConsecutiveTopLiquids();
+            
+            // Calculate how many we can actually move (limited by target container space)
+            const availableSpace = toContainer.getAvailableSpace();
+            const liquidsToMove = Math.min(consecutiveLiquids.length, availableSpace);
+            
+            if (liquidsToMove > 0) {
+                // Remove the liquids from source container
+                const movedLiquids = fromContainer.removeMultipleLiquids(liquidsToMove);
+                
+                // Add them to target container
+                movedLiquids.forEach(liquid => {
+                    toContainer.addLiquid(liquid);
+                });
+            }
         }
     }
 

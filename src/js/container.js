@@ -47,4 +47,38 @@ class Container {
         
         return this.getTopLiquid().color === targetContainer.getTopLiquid().color;
     }
+
+    getConsecutiveTopLiquids() {
+        if (this.isEmpty()) {
+            return [];
+        }
+        
+        const topColor = this.getTopLiquid().color;
+        const consecutiveLiquids = [];
+        
+        // Start from the top and work backwards
+        for (let i = this.liquids.length - 1; i >= 0; i--) {
+            if (this.liquids[i].color === topColor) {
+                consecutiveLiquids.unshift(this.liquids[i]);
+            } else {
+                break;
+            }
+        }
+        
+        return consecutiveLiquids;
+    }
+
+    removeMultipleLiquids(count) {
+        const removedLiquids = [];
+        for (let i = 0; i < count; i++) {
+            if (!this.isEmpty()) {
+                removedLiquids.unshift(this.removeLiquid());
+            }
+        }
+        return removedLiquids.reverse();
+    }
+
+    getAvailableSpace() {
+        return this.capacity - this.liquids.length;
+    }
 }
