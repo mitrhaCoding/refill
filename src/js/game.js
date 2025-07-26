@@ -31,7 +31,7 @@ class Game {
     init() {
         this.createContainers();
         this.createLiquids();
-        this.displayVersion();
+        this.displayVersion(); // Call the async function
         this.setupControls();
         this.render();
         this.addEventListeners();
@@ -118,38 +118,142 @@ class Game {
         // Leave the remaining containers empty for sorting
     }
 
-    displayVersion() {
-        // Try to fetch version from version.ver file with aggressive cache busting
-        const timestamp = new Date().getTime();
-        const randomParam = Math.random().toString(36).substring(7);
-        
-        fetch(`./version.ver?t=${timestamp}&r=${randomParam}`, {
-            cache: 'no-cache',
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
+    async displayVersion() {
+        console.log('displayVersion called');
+        const versionDiv = document.getElementById('version-info');
+        if (!versionDiv) {
+            console.error('version-info div not found');
+            return;
+        }
+
+        // Set a temporary version while loading
+        versionDiv.textContent = 'v... (loading)';
+
+        try {
+            // Try to fetch version from GitHub API first
+            console.log('Attempting GitHub version fetch...');
+            const githubVersion = await this.fetchVersionFromGitHub();
+            if (githubVersion) {
+                console.log('GitHub version success:', githubVersion);
+                versionDiv.textContent = `v${githubVersion}`;
+                // Cache the version for future use (v2 cache keys)
+                localStorage.setItem('cached-version-v2', githubVersion);
+                localStorage.setItem('version-cache-time-v2', Date.now().toString());
+                return;
             }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                return response.text();
-            })
-            .then(version => {
-                const versionDiv = document.getElementById('version-info');
-                if (versionDiv) {
-                    versionDiv.textContent = `v${version.trim()}`;
-                }
-            })
-            .catch((error) => {
-                console.warn('Version fetch failed, using fallback:', error);
-                // Fallback to package.json version
-                const versionDiv = document.getElementById('version-info');
-                if (versionDiv) {
-                    versionDiv.textContent = 'v1.0.0';
+        } catch (error) {
+            console.warn('GitHub API fetch failed:', error);
+        }
+
+        try {
+            // Fallback to local version.ver file with cache busting
+            console.log('Falling back to local version.ver...');
+            const timestamp = new Date().getTime();
+            const randomParam = Math.random().toString(36).substring(7);
+            
+            const response = await fetch(`./version.ver?t=${timestamp}&r=${randomParam}`, {
+                cache: 'no-cache',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
                 }
             });
+
+            if (response.ok) {
+                const version = await response.text();
+                console.log('Local version success:', version.trim());
+                versionDiv.textContent = `v${version.trim()}`;
+                return;
+            }
+        } catch (error) {
+            console.warn('Local version fetch failed:', error);
+        }
+
+        // Final fallback - use cached version or default
+        const cachedVersion = localStorage.getItem('cached-version-v2');
+        if (cachedVersion) {
+            versionDiv.textContent = `v${cachedVersion} (cached)`;
+        } else {
+            versionDiv.textContent = 'v1.0.0';
+        }
+    }
+
+    async fetchVersionFromGitHub() {
+        // Check cache first (cache for 1 hour) - using v2 to bust old cache with timestamps
+        const cacheTime = localStorage.getItem('version-cache-time-v2');
+        const cachedVersion = localStorage.getItem('cached-version-v2');
+        const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+        
+        if (cacheTime && cachedVersion && (Date.now() - parseInt(cacheTime)) < oneHour) {
+            console.log('Using cached GitHub version:', cachedVersion);
+            return cachedVersion;
+        }
+
+        try {
+            console.log('Fetching version from GitHub API...');
+            
+            // Fetch latest commit from GitHub API (using commits endpoint that works)
+            const apiUrl = 'https://api.github.com/repos/mitrhaCoding/refill/commits?per_page=1';
+            const response = await fetch(apiUrl, {
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'User-Agent': 'Liquid-Sort-Game-App'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`GitHub API responded with ${response.status}`);
+            }
+
+            const data = await response.json();
+            const latestCommit = data[0]; // Get the first (most recent) commit
+            const commitMessage = latestCommit.commit.message.toLowerCase();
+            const commitDate = new Date(latestCommit.commit.author.date);
+            const commitHash = latestCommit.sha.substring(0, 7);
+
+            // Generate version based on commit analysis
+            let version = await this.generateVersionFromCommit(commitMessage, commitDate, commitHash);
+            
+            console.log('Generated version from GitHub:', version);
+            return version;
+
+        } catch (error) {
+            console.warn('Failed to fetch from GitHub API:', error);
+            return null;
+        }
+    }
+
+    async generateVersionFromCommit(commitMessage, commitDate, commitHash) {
+        // Read current version from package.json as base
+        let baseVersion = '1.0.0';
+        try {
+            const packageResponse = await fetch('./package.json');
+            if (packageResponse.ok) {
+                const packageData = await packageResponse.json();
+                baseVersion = packageData.version || '1.0.0';
+            }
+        } catch (error) {
+            console.warn('Could not read package.json for base version:', error);
+        }
+
+        // Parse base version
+        let [major, minor, patch] = baseVersion.split('.').map(Number);
+
+        // Simple version increment based on commit message keywords
+        if (commitMessage.includes('major') || commitMessage.includes('breaking')) {
+            major += 1;
+            minor = 0;
+            patch = 0;
+        } else if (commitMessage.includes('minor') || commitMessage.includes('feature') || commitMessage.includes('add')) {
+            minor += 1;
+            patch = 0;
+        } else {
+            // For any other commit, increment patch
+            patch += 1;
+        }
+
+        // Return clean semantic version without timestamp/hash
+        return `${major}.${minor}.${patch}`;
     }
 
     render() {
