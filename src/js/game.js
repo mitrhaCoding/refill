@@ -58,6 +58,15 @@ class Game {
             containerDiv.className = 'container';
             containerDiv.dataset.index = index;
             
+            // Make containers with liquid draggable
+            if (!container.isEmpty()) {
+                containerDiv.draggable = true;
+                containerDiv.setAttribute('draggable', 'true');
+            } else {
+                containerDiv.draggable = false;
+                containerDiv.setAttribute('draggable', 'false');
+            }
+            
             if (this.selectedContainer === index) {
                 containerDiv.classList.add('selected');
             }
@@ -94,6 +103,9 @@ class Game {
             }
             
             containersDiv.appendChild(containerDiv);
+            
+            // Add drag events to this specific container
+            this.addDragEventsToContainer(containerDiv, index);
         });
         
         // Check win condition
@@ -106,9 +118,11 @@ class Game {
 
     addEventListeners() {
         const containersDiv = document.getElementById('containers');
+        
+        // Click event for click-click functionality
         containersDiv.addEventListener('click', (e) => {
             const containerDiv = e.target.closest('.container');
-            if (containerDiv) {
+            if (containerDiv && !containerDiv.classList.contains('dragging')) {
                 const index = parseInt(containerDiv.dataset.index);
                 this.handleContainerClick(index);
             }
@@ -117,6 +131,63 @@ class Game {
         const resetButton = document.getElementById('reset-button');
         resetButton.addEventListener('click', () => {
             this.resetGame();
+        });
+    }
+
+    addDragEventsToContainer(containerDiv, index) {
+        // Only add drag events if container has liquid
+        if (!this.containers[index].isEmpty()) {
+            containerDiv.addEventListener('dragstart', (e) => {
+                console.log('Drag start:', index);
+                e.dataTransfer.setData('text/plain', index.toString());
+                e.dataTransfer.effectAllowed = 'move';
+                containerDiv.classList.add('dragging');
+                this.selectedContainer = null;
+                setTimeout(() => this.render(), 0);
+            });
+
+            containerDiv.addEventListener('dragend', (e) => {
+                console.log('Drag end:', index);
+                containerDiv.classList.remove('dragging');
+                // Clean up any drag-over states
+                document.querySelectorAll('.container').forEach(container => {
+                    container.classList.remove('drag-over');
+                });
+            });
+        }
+
+        // All containers can be drop targets
+        containerDiv.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        containerDiv.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            if (!containerDiv.classList.contains('dragging')) {
+                containerDiv.classList.add('drag-over');
+            }
+        });
+
+        containerDiv.addEventListener('dragleave', (e) => {
+            if (!containerDiv.contains(e.relatedTarget)) {
+                containerDiv.classList.remove('drag-over');
+            }
+        });
+
+        containerDiv.addEventListener('drop', (e) => {
+            e.preventDefault();
+            containerDiv.classList.remove('drag-over');
+            
+            const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            const targetIndex = parseInt(containerDiv.dataset.index);
+            
+            console.log('Drop:', sourceIndex, '->', targetIndex);
+            
+            if (sourceIndex !== targetIndex && !isNaN(sourceIndex)) {
+                this.pourLiquid(sourceIndex, targetIndex);
+                this.render();
+            }
         });
     }
 
