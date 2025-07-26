@@ -2,6 +2,7 @@
 
 class Game {
     constructor() {
+        console.log('Game constructor called');
         this.containers = [];
         this.selectedContainer = null;
         this.colors = [
@@ -25,7 +26,8 @@ class Game {
             modalOverlayClick: null,
             difficultyInput: null,
             complexityInput: null,
-            applyClick: null
+            applyClick: null,
+            settingsClick: null
         };
         
         // Store original settings to detect changes
@@ -38,6 +40,7 @@ class Game {
     }
 
     init() {
+        console.log('Game init called');
         this.createContainers();
         this.createLiquids();
         this.displayVersion(); // Call the async function
@@ -63,7 +66,19 @@ class Game {
         const modalComplexitySlider = document.getElementById('modal-complexity-slider');
         const modalDifficultyValue = document.getElementById('modal-difficulty-value');
         const modalComplexityValue = document.getElementById('modal-complexity-value');
+        const difficultySlider = document.getElementById('difficulty-slider');
+        const complexitySlider = document.getElementById('complexity-slider');
+        const difficultyValue = document.getElementById('difficulty-value');
+        const complexityValue = document.getElementById('complexity-value');
+        // Log all button elements before trying to get them
+        console.log('All buttons:', document.querySelectorAll('button'));
         const applyButton = document.getElementById('apply-settings');
+        const settingsPanel = document.getElementById('game-controls');
+        
+        // Log what we found
+        console.log('Apply button:', applyButton);
+        console.log('Settings button:', settingsButton);
+        console.log('Settings panel:', settingsPanel);
 
         // Set initial values for modal controls
         modalDifficultySlider.value = this.difficulty;
@@ -146,8 +161,134 @@ class Game {
         if (this.eventListeners.modalComplexityInput) {
             modalComplexitySlider.removeEventListener('input', this.eventListeners.modalComplexityInput);
         }
+
         if (this.eventListeners.applyClick) {
             applyButton.removeEventListener('click', this.eventListeners.applyClick);
+        }
+    }
+
+    setupMainControls() {
+        console.log('Setup Controls Debug:');
+        // Get all required elements
+        const settingsButton = document.getElementById('settings-button');
+        const settingsPanel = document.getElementById('game-controls');
+        const difficultySlider = document.getElementById('difficulty-slider');
+        const complexitySlider = document.getElementById('complexity-slider');
+        const difficultyValue = document.getElementById('difficulty-value');
+        const complexityValue = document.getElementById('complexity-value');
+        const applyButton = document.getElementById('apply-settings');
+        
+        console.log('Settings button:', settingsButton);
+        console.log('Settings panel:', settingsPanel);
+        console.log('Settings panel initial classes:', settingsPanel?.className);
+
+        // Check for null elements
+        if (!difficultySlider) console.error('difficultySlider not found!');
+        if (!complexitySlider) console.error('complexitySlider not found!');
+        if (!difficultyValue) console.error('difficultyValue not found!');
+        if (!complexityValue) console.error('complexityValue not found!');
+        if (!applyButton) console.error('applyButton not found!');
+        if (!settingsButton) console.error('settingsButton not found!');
+        if (!settingsPanel) console.error('settingsPanel not found!');
+
+        // Only proceed if all required elements exist
+        if (!settingsButton || !settingsPanel) {
+            console.error('Critical elements missing, aborting setupControls');
+            return;
+        }
+
+        // Update slider values - only if elements exist
+        if (difficultySlider && complexitySlider && difficultyValue && complexityValue) {
+            difficultySlider.value = this.difficulty;
+            complexitySlider.value = this.complexity;
+            difficultyValue.textContent = this.difficulty;
+            complexityValue.textContent = this.complexity;
+        } else {
+            console.warn('Some slider elements not found, skipping value updates');
+        }
+
+        // Remove existing event listeners before adding new ones - with null checks
+        if (this.eventListeners.difficultyInput && difficultySlider) {
+            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
+        }
+        if (this.eventListeners.complexityInput && complexitySlider) {
+            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
+        }
+        if (this.eventListeners.applyClick && applyButton) {
+            applyButton.removeEventListener('click', this.eventListeners.applyClick);
+        }
+
+        // Create and store new event listeners - with null checks
+        if (difficultySlider && difficultyValue) {
+            this.eventListeners.difficultyInput = (e) => {
+                difficultyValue.textContent = e.target.value;
+            };
+        }
+
+        if (complexitySlider && complexityValue) {
+            this.eventListeners.complexityInput = (e) => {
+                complexityValue.textContent = e.target.value;
+            };
+        }
+
+        if (applyButton) {
+            this.eventListeners.applyClick = () => {
+                this.difficulty = parseInt(difficultySlider?.value || this.difficulty);
+                this.complexity = parseInt(complexitySlider?.value || this.complexity);
+                this.resetGame();
+            };
+        }
+
+        this.eventListeners.settingsClick = () => {
+            console.log('Settings button clicked!');
+            const panel = document.getElementById('game-controls');
+            const settingsButton = document.getElementById('settings-toggle');
+            
+            if (!panel) {
+                console.error('Settings panel not found!');
+                return;
+            }
+            
+            const isHidden = panel.classList.contains('hidden');
+            
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                settingsButton.textContent = 'Hide Settings';
+                settingsButton.setAttribute('aria-expanded', 'true');
+                console.log('Settings panel opened');
+            } else {
+                panel.classList.add('hidden');
+                settingsButton.textContent = 'Settings';
+                settingsButton.setAttribute('aria-expanded', 'false');
+                console.log('Settings panel closed');
+            }
+        };
+
+        // Add event listeners for real-time value updates - with null checks
+        if (difficultySlider && this.eventListeners.difficultyInput) {
+            difficultySlider.addEventListener('input', this.eventListeners.difficultyInput);
+        }
+        if (complexitySlider && this.eventListeners.complexityInput) {
+            complexitySlider.addEventListener('input', this.eventListeners.complexityInput);
+        }
+
+        // Apply settings button - with null check
+        if (applyButton && this.eventListeners.applyClick) {
+            applyButton.addEventListener('click', this.eventListeners.applyClick);
+        }
+        
+        // Settings toggle button
+        try {
+            console.log('About to attach click event to settings button');
+            settingsButton.addEventListener('click', (e) => {
+                console.log('Settings button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
+                this.eventListeners.settingsClick();
+            });
+            console.log('Settings event listener attached successfully');
+        } catch (error) {
+            console.error('Error attaching settings click event:', error);
         }
     }
 
@@ -259,16 +400,13 @@ class Game {
         versionDiv.textContent = 'v... (loading)';
 
         try {
-            // Try to fetch version from GitHub API first
+            // Try to fetch version from GitHub API
             console.log('Attempting GitHub version fetch...');
             const githubVersion = await this.fetchVersionFromGitHub();
             console.log('GitHub version result:', githubVersion);
             if (githubVersion) {
                 console.log('GitHub version success:', githubVersion);
                 versionDiv.textContent = `v${githubVersion}`;
-                // Cache the version for future use (v3 cache keys)
-                localStorage.setItem('cached-version-v3', githubVersion);
-                localStorage.setItem('version-cache-time-v3', Date.now().toString());
                 console.log('Version displayed successfully:', `v${githubVersion}`);
                 return;
             }
@@ -277,17 +415,10 @@ class Game {
         }
 
         try {
-            // Fallback to local version.ver file with cache busting
+            // Fallback to local version.ver file
             console.log('Falling back to local version.ver...');
-            const timestamp = new Date().getTime();
-            const randomParam = Math.random().toString(36).substring(7);
-            
-            const response = await fetch(`./version.ver?t=${timestamp}&r=${randomParam}`, {
-                cache: 'no-cache',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
+            const response = await fetch(`./version.ver`, {
+                cache: 'no-cache'
             });
 
             if (response.ok) {
@@ -300,32 +431,16 @@ class Game {
             console.warn('Local version fetch failed:', error);
         }
 
-        // Final fallback - use cached version or default
-        const cachedVersion = localStorage.getItem('cached-version-v3');
-        if (cachedVersion) {
-            versionDiv.textContent = `v${cachedVersion} (cached)`;
-        } else {
-            versionDiv.textContent = 'v1.0.0';
-        }
+        // Final fallback - use default version
+        versionDiv.textContent = 'v1.0.0';
     }
 
     async fetchVersionFromGitHub() {
-        // Check cache first (cache for 5 minutes for faster testing)
-        const cacheTime = localStorage.getItem('version-cache-time-v3');
-        const cachedVersion = localStorage.getItem('cached-version-v3');
-        const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
-        
-        if (cacheTime && cachedVersion && (Date.now() - parseInt(cacheTime)) < fiveMinutes) {
-            console.log('Using cached GitHub version:', cachedVersion);
-            return cachedVersion;
-        }
-
         try {
             console.log('Fetching version from GitHub API...');
             
-            // Fetch latest commit from GitHub API (using commits endpoint that works)
-            const timestamp = Date.now();
-            const apiUrl = `https://api.github.com/repos/mitrhaCoding/refill/commits?per_page=1&_t=${timestamp}`;
+            // Fetch latest commit from GitHub API
+            const apiUrl = `https://api.github.com/repos/mitrhaCoding/refill/commits?per_page=1`;
             console.log('API URL:', apiUrl);
             const response = await fetch(apiUrl, {
                 headers: {
@@ -613,7 +728,7 @@ class Game {
             this.checkGameEndConditions();
         }
         
-        alert(`Found ${validMoves} valid moves. Check console for details.`);
+        console.log(`Found ${validMoves} valid moves. Check console for details.`);
     }
 
     addDragEventsToContainer(containerDiv, index) {
@@ -800,6 +915,24 @@ class Game {
 
         // Remove control event listeners (including modal events)
         this.removeControlEventListeners();
+        // Remove control event listeners
+        const difficultySlider = document.getElementById('difficulty-slider');
+        const complexitySlider = document.getElementById('complexity-slider');
+        const applyButton = document.getElementById('apply-settings');
+        const settingsButton = document.getElementById('settings-toggle');
+
+        if (this.eventListeners.difficultyInput) {
+            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
+        }
+        if (this.eventListeners.complexityInput) {
+            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
+        }
+        if (this.eventListeners.applyClick) {
+            applyButton.removeEventListener('click', this.eventListeners.applyClick);
+        }
+        if (this.eventListeners.settingsClick) {
+            settingsButton.removeEventListener('click', this.eventListeners.settingsClick);
+        }
 
         // Remove drag and drop event listeners from all existing container elements
         const existingContainers = document.querySelectorAll('.container');
@@ -825,6 +958,8 @@ class Game {
     }
 }
 
+console.log('Script loaded');
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded fired');
     const game = new Game();
 });

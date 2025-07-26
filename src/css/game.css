@@ -96,17 +96,17 @@
 }
 
 #game-container h1 {
-    margin-bottom: 10px;
+    margin-bottom: 5px;
     font-size: 2.5rem;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
 #version-info {
-    font-size: 1rem;
-    opacity: 0.8;
-    margin-bottom: 10px;
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-bottom: 20px;
     font-weight: normal;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 #move-counter {
@@ -189,18 +189,38 @@
     background: linear-gradient(45deg, #20c997, #28a745);
 }
 
+/* Hide settings panel by default */
+.hidden {
+    display: none !important;
+}
+
+#settings-toggle,
 #reset-button {
+    display: block;
+    margin: 10px auto;
     padding: 12px 24px;
-    margin-top: 30px;
     border: none;
     border-radius: 25px;
-    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
     color: white;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+#settings-toggle {
+    background: linear-gradient(45deg, #6bc6ff, #246fee);
+}
+
+#settings-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(45deg, #246fee, #6bc6ff);
+}
+
+#reset-button {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
 }
 
 #reset-button:hover {
