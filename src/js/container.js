@@ -37,15 +37,26 @@ class Container {
     }
 
     canPourTo(targetContainer) {
-        if (this.isEmpty() || targetContainer.isFull()) {
+        // Can't pour if source is empty
+        if (this.isEmpty()) {
             return false;
         }
         
+        // Can't pour if target is full
+        if (targetContainer.isFull()) {
+            return false;
+        }
+        
+        // Can pour into empty container
         if (targetContainer.isEmpty()) {
             return true;
         }
         
-        return this.getTopLiquid().color === targetContainer.getTopLiquid().color;
+        // Can only pour if top colors match
+        const sourceTopColor = this.getTopLiquid().color;
+        const targetTopColor = targetContainer.getTopLiquid().color;
+        
+        return sourceTopColor === targetTopColor;
     }
 
     getConsecutiveTopLiquids() {
@@ -80,5 +91,19 @@ class Container {
 
     getAvailableSpace() {
         return this.capacity - this.liquids.length;
+    }
+
+    isSorted() {
+        if (this.isEmpty()) {
+            return true; // Empty containers are considered sorted
+        }
+        
+        // Check if all liquids in the container are the same color
+        const firstColor = this.liquids[0].color;
+        return this.liquids.every(liquid => liquid.color === firstColor);
+    }
+
+    isCompletelyFilled() {
+        return this.isFull() && this.isSorted();
     }
 }

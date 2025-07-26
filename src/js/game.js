@@ -4,9 +4,27 @@ class Game {
     constructor() {
         this.containers = [];
         this.selectedContainer = null;
-        this.colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
-        this.numContainers = 8;
+        this.colors = [
+            'red', 'blue', 'green', 'yellow', 'purple', 'orange',
+            'pink', 'cyan', 'lime', 'brown', 'gray', 'navy',
+            'maroon', 'olive', 'teal', 'silver', 'gold', 'indigo',
+            'coral', 'salmon'
+        ];
+        this.difficulty = 2; // Extra containers (1-4)
+        this.complexity = 6; // Filled containers (6-20)
         this.containerCapacity = 4;
+        this.gameState = 'playing'; // 'playing', 'won', 'lost'
+        this.moves = 0;
+        
+        // Store references to event listeners for cleanup
+        this.eventListeners = {
+            containerClick: null,
+            resetClick: null,
+            difficultyInput: null,
+            complexityInput: null,
+            applyClick: null
+        };
+        
         this.init();
     }
 
@@ -14,8 +32,90 @@ class Game {
         this.createContainers();
         this.createLiquids();
         this.displayVersion();
+        this.setupControls();
         this.render();
         this.addEventListeners();
+    }
+
+    setupControls() {
+        const difficultySlider = document.getElementById('difficulty-slider');
+        const complexitySlider = document.getElementById('complexity-slider');
+        const difficultyValue = document.getElementById('difficulty-value');
+        const complexityValue = document.getElementById('complexity-value');
+        const applyButton = document.getElementById('apply-settings');
+
+        // Update slider values
+        difficultySlider.value = this.difficulty;
+        complexitySlider.value = this.complexity;
+        difficultyValue.textContent = this.difficulty;
+        complexityValue.textContent = this.complexity;
+
+        // Remove existing event listeners before adding new ones
+        if (this.eventListeners.difficultyInput) {
+            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
+        }
+        if (this.eventListeners.complexityInput) {
+            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
+        }
+        if (this.eventListeners.applyClick) {
+            applyButton.removeEventListener('click', this.eventListeners.applyClick);
+        }
+
+        // Create and store new event listeners
+        this.eventListeners.difficultyInput = (e) => {
+            difficultyValue.textContent = e.target.value;
+        };
+
+        this.eventListeners.complexityInput = (e) => {
+            complexityValue.textContent = e.target.value;
+        };
+
+        this.eventListeners.applyClick = () => {
+            this.difficulty = parseInt(difficultySlider.value);
+            this.complexity = parseInt(complexitySlider.value);
+            this.resetGame();
+        };
+
+        // Add event listeners for real-time value updates
+        difficultySlider.addEventListener('input', this.eventListeners.difficultyInput);
+        complexitySlider.addEventListener('input', this.eventListeners.complexityInput);
+
+        // Apply settings button
+        applyButton.addEventListener('click', this.eventListeners.applyClick);
+    }
+
+    createContainers() {
+        // Total containers = filled containers + extra containers
+        const totalContainers = this.complexity + this.difficulty;
+        
+        for (let i = 0; i < totalContainers; i++) {
+            this.containers.push(new Container(this.containerCapacity));
+        }
+    }
+
+    createLiquids() {
+        const allLiquids = [];
+        
+        // Create 4 liquids of each color (for the filled containers)
+        for (let i = 0; i < this.complexity; i++) {
+            const color = this.colors[i % this.colors.length]; // Cycle through colors if needed
+            for (let j = 0; j < this.containerCapacity; j++) {
+                allLiquids.push(new Liquid(color));
+            }
+        }
+        
+        // Shuffle the liquids
+        shuffleArray(allLiquids);
+        
+        // Fill the first 'complexity' containers with shuffled liquids
+        let liquidIndex = 0;
+        for (let i = 0; i < this.complexity; i++) {
+            for (let j = 0; j < this.containerCapacity; j++) {
+                this.containers[i].addLiquid(allLiquids[liquidIndex++]);
+            }
+        }
+        
+        // Leave the remaining containers empty for sorting
     }
 
     displayVersion() {
@@ -35,38 +135,6 @@ class Game {
                     versionDiv.textContent = 'v0.1.0';
                 }
             });
-    }
-
-    createContainers() {
-        // Create filled containers (2 extra empty containers for sorting)
-        for (let i = 0; i < this.numContainers; i++) {
-            this.containers.push(new Container(this.containerCapacity));
-        }
-    }
-
-    createLiquids() {
-        const allLiquids = [];
-        
-        // Create 4 liquids of each color (for first 6 containers)
-        for (let i = 0; i < 6; i++) {
-            const color = this.colors[i];
-            for (let j = 0; j < this.containerCapacity; j++) {
-                allLiquids.push(new Liquid(color));
-            }
-        }
-        
-        // Shuffle the liquids
-        shuffleArray(allLiquids);
-        
-        // Fill the first 6 containers with shuffled liquids
-        let liquidIndex = 0;
-        for (let i = 0; i < 6; i++) {
-            for (let j = 0; j < this.containerCapacity; j++) {
-                this.containers[i].addLiquid(allLiquids[liquidIndex++]);
-            }
-        }
-        
-        // Leave the last 2 containers empty for sorting
     }
 
     render() {
@@ -128,30 +196,119 @@ class Game {
             this.addDragEventsToContainer(containerDiv, index);
         });
         
-        // Check win condition
-        if (checkWinCondition(this.containers)) {
-            setTimeout(() => {
-                alert('Congratulations! You won!');
-            }, 100);
+        // Update move counter
+        this.updateMoveCounter();
+        
+        // Check game end conditions
+        this.checkGameEndConditions();
+    }
+
+    checkGameEndConditions() {
+        if (this.gameState !== 'playing') {
+            return; // Game already ended
         }
+        
+        // Check win condition first
+        if (checkWinCondition(this.containers)) {
+            this.gameState = 'won';
+            const difficultyText = this.getDifficultyText();
+            this.showGameOverModal('Congratulations!', 
+                `🎉 You won in ${this.moves} moves! 🎉`, 
+                `${difficultyText} - You successfully sorted all the liquids!`, 
+                '#28a745');
+            return;
+        }
+        
+        // Then check lose condition
+        if (checkLoseCondition(this.containers)) {
+            this.gameState = 'lost';
+            this.showGameOverModal('Game Over', 
+                '😔 No more moves available!', 
+                'Try adjusting the difficulty or reset the game to start over.', 
+                '#dc3545');
+            return;
+        }
+    }
+
+    getDifficultyText() {
+        const difficultyNames = {
+            1: 'Easy',
+            2: 'Medium', 
+            3: 'Hard',
+            4: 'Expert'
+        };
+        
+        const difficultyName = difficultyNames[this.difficulty] || 'Custom';
+        return `Difficulty: ${difficultyName} (${this.complexity} colors, ${this.difficulty} extra containers)`;
     }
 
     addEventListeners() {
         const containersDiv = document.getElementById('containers');
+        const resetButton = document.getElementById('reset-button');
         
-        // Click event for click-click functionality
-        containersDiv.addEventListener('click', (e) => {
+        // Remove existing event listeners before adding new ones
+        if (this.eventListeners.containerClick) {
+            containersDiv.removeEventListener('click', this.eventListeners.containerClick);
+        }
+        if (this.eventListeners.resetClick) {
+            resetButton.removeEventListener('click', this.eventListeners.resetClick);
+        }
+
+        // Create and store new event listeners
+        this.eventListeners.containerClick = (e) => {
             const containerDiv = e.target.closest('.container');
             if (containerDiv && !containerDiv.classList.contains('dragging')) {
                 const index = parseInt(containerDiv.dataset.index);
                 this.handleContainerClick(index);
             }
-        });
-        
-        const resetButton = document.getElementById('reset-button');
-        resetButton.addEventListener('click', () => {
+        };
+
+        this.eventListeners.resetClick = () => {
             this.resetGame();
-        });
+        };
+        
+        // Click event for click-click functionality
+        containersDiv.addEventListener('click', this.eventListeners.containerClick);
+        
+        resetButton.addEventListener('click', this.eventListeners.resetClick);
+    }
+
+    debugValidMoves() {
+        console.log('=== DEBUG: Checking all possible moves ===');
+        let validMoves = 0;
+        
+        for (let i = 0; i < this.containers.length; i++) {
+            const sourceContainer = this.containers[i];
+            if (sourceContainer.isEmpty()) {
+                console.log(`Container ${i}: Empty (skip)`);
+                continue;
+            }
+            
+            console.log(`Container ${i}: Has ${sourceContainer.liquids.length} liquids, top color: ${sourceContainer.getTopLiquid().color}`);
+            
+            for (let j = 0; j < this.containers.length; j++) {
+                if (i === j) continue;
+                
+                const targetContainer = this.containers[j];
+                const canPour = sourceContainer.canPourTo(targetContainer);
+                
+                if (canPour) {
+                    validMoves++;
+                    console.log(`  ✅ Can pour to container ${j} (${targetContainer.isEmpty() ? 'empty' : 'top color: ' + targetContainer.getTopLiquid().color})`);
+                } else {
+                    console.log(`  ❌ Cannot pour to container ${j} (${targetContainer.isFull() ? 'full' : targetContainer.isEmpty() ? 'empty but other reason' : 'top color: ' + targetContainer.getTopLiquid().color})`);
+                }
+            }
+        }
+        
+        console.log(`=== Total valid moves: ${validMoves} ===`);
+        
+        if (validMoves === 0) {
+            console.log('NO VALID MOVES - SHOULD TRIGGER LOSE CONDITION');
+            this.checkGameEndConditions();
+        }
+        
+        alert(`Found ${validMoves} valid moves. Check console for details.`);
     }
 
     addDragEventsToContainer(containerDiv, index) {
@@ -205,13 +362,19 @@ class Game {
             console.log('Drop:', sourceIndex, '->', targetIndex);
             
             if (sourceIndex !== targetIndex && !isNaN(sourceIndex)) {
-                this.pourLiquid(sourceIndex, targetIndex);
+                if (this.pourLiquid(sourceIndex, targetIndex)) {
+                    this.moves++;
+                }
                 this.render();
             }
         });
     }
 
     handleContainerClick(index) {
+        if (this.gameState !== 'playing') {
+            return; // Don't allow moves if game is over
+        }
+
         if (this.selectedContainer === null) {
             // Select a container
             if (!this.containers[index].isEmpty()) {
@@ -224,13 +387,19 @@ class Game {
             this.render();
         } else {
             // Try to pour from selected container to clicked container
-            this.pourLiquid(this.selectedContainer, index);
+            if (this.pourLiquid(this.selectedContainer, index)) {
+                this.moves++;
+            }
             this.selectedContainer = null;
             this.render();
         }
     }
 
     pourLiquid(fromIndex, toIndex) {
+        if (this.gameState !== 'playing') {
+            return false; // Don't allow moves if game is over
+        }
+
         const fromContainer = this.containers[fromIndex];
         const toContainer = this.containers[toIndex];
         
@@ -250,18 +419,116 @@ class Game {
                 movedLiquids.forEach(liquid => {
                     toContainer.addLiquid(liquid);
                 });
+                
+                return true; // Move was successful
             }
         }
+        return false; // Move was not possible
+    }
+
+    showGameOverModal(title, message, subtitle, color) {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'game-over-overlay';
+        
+        // Create modal content
+        const modal = document.createElement('div');
+        modal.className = 'game-over-modal';
+        modal.style.borderColor = color;
+        
+        modal.innerHTML = `
+            <h2 style="color: ${color}">${title}</h2>
+            <p class="main-message">${message}</p>
+            <p class="sub-message">${subtitle}</p>
+            <div class="modal-buttons">
+                <button class="modal-btn restart-btn" style="background-color: ${color}">
+                    🔄 Play Again
+                </button>
+                <button class="modal-btn close-btn">
+                    ✖️ Close
+                </button>
+            </div>
+        `;
+        
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        
+        // Add event listeners
+        modal.querySelector('.restart-btn').addEventListener('click', () => {
+            document.body.removeChild(overlay);
+            this.resetGame();
+        });
+        
+        modal.querySelector('.close-btn').addEventListener('click', () => {
+            document.body.removeChild(overlay);
+        });
+        
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+            }
+        });
     }
 
     resetGame() {
+        // Clean up all event listeners before resetting
+        this.removeAllEventListeners();
+        
         this.containers = [];
         this.selectedContainer = null;
+        this.gameState = 'playing';
+        this.moves = 0;
         this.init();
+    }
+
+    removeAllEventListeners() {
+        // Remove main game event listeners
+        const containersDiv = document.getElementById('containers');
+        const resetButton = document.getElementById('reset-button');
+        
+        if (this.eventListeners.containerClick) {
+            containersDiv.removeEventListener('click', this.eventListeners.containerClick);
+        }
+        if (this.eventListeners.resetClick) {
+            resetButton.removeEventListener('click', this.eventListeners.resetClick);
+        }
+
+        // Remove control event listeners
+        const difficultySlider = document.getElementById('difficulty-slider');
+        const complexitySlider = document.getElementById('complexity-slider');
+        const applyButton = document.getElementById('apply-settings');
+
+        if (this.eventListeners.difficultyInput) {
+            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
+        }
+        if (this.eventListeners.complexityInput) {
+            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
+        }
+        if (this.eventListeners.applyClick) {
+            applyButton.removeEventListener('click', this.eventListeners.applyClick);
+        }
+
+        // Remove drag and drop event listeners from all existing container elements
+        const existingContainers = document.querySelectorAll('.container');
+        existingContainers.forEach(containerDiv => {
+            // Clone the node and replace it to remove all event listeners
+            const newContainerDiv = containerDiv.cloneNode(true);
+            containerDiv.parentNode.replaceChild(newContainerDiv, containerDiv);
+        });
+
+        // Clear the containers div completely to ensure clean state
+        containersDiv.innerHTML = '';
     }
 
     checkWinCondition() {
         return checkWinCondition(this.containers);
+    }
+
+    updateMoveCounter() {
+        const moveCounter = document.getElementById('move-counter');
+        if (moveCounter) {
+            moveCounter.textContent = `Moves: ${this.moves}`;
+        }
     }
 }
 

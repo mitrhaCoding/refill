@@ -3,21 +3,24 @@
     justify-content: center;
     align-items: flex-end;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
     margin: 20px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .container {
     display: flex;
     flex-direction: column-reverse;
-    width: 80px;
-    height: 200px;
+    width: 70px;
+    height: 180px;
     border: 3px solid #333;
-    border-radius: 10px 10px 20px 20px;
+    border-radius: 8px 8px 16px 16px;
     background-color: #f8f9fa;
     cursor: pointer;
     transition: all 0.2s ease;
-    padding: 5px;
+    padding: 4px;
 }
 
 .container.selected {
@@ -102,9 +105,89 @@
 #version-info {
     font-size: 1rem;
     opacity: 0.8;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     font-weight: normal;
     letter-spacing: 1px;
+}
+
+#move-counter {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+#game-controls {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px auto;
+    max-width: 600px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.control-group {
+    margin-bottom: 15px;
+}
+
+.control-group label {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+.slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+#apply-settings {
+    width: 100%;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+#apply-settings:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    background: linear-gradient(45deg, #20c997, #28a745);
 }
 
 #reset-button {
@@ -125,4 +208,136 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0,0,0,0.3);
     background: linear-gradient(45deg, #ee5a24, #ff6b6b);
+}
+
+/* Game Over Modal Styles */
+.game-over-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.game-over-modal {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    border: 4px solid;
+    min-width: 300px;
+    animation: slideIn 0.3s ease;
+}
+
+.game-over-modal h2 {
+    font-size: 2.5rem;
+    margin: 0 0 20px 0;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.game-over-modal .main-message {
+    font-size: 1.4rem;
+    margin: 0 0 10px 0;
+    font-weight: bold;
+}
+
+.game-over-modal .sub-message {
+    font-size: 1rem;
+    margin: 0 0 30px 0;
+    opacity: 0.9;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.modal-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 25px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.restart-btn {
+    color: white;
+}
+
+.close-btn {
+    background: linear-gradient(45deg, #6c757d, #495057);
+    color: white;
+}
+
+.modal-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0;
+        transform: scale(0.8) translateY(-50px);
+    }
+    to { 
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        width: 60px;
+        height: 150px;
+        padding: 3px;
+    }
+    
+    #containers {
+        gap: 8px;
+        margin: 15px;
+    }
+    
+    #game-container h1 {
+        font-size: 2rem;
+    }
+    
+    #game-controls {
+        margin: 15px;
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        width: 50px;
+        height: 120px;
+        padding: 2px;
+    }
+    
+    #containers {
+        gap: 6px;
+        margin: 10px;
+    }
+    
+    #game-container h1 {
+        font-size: 1.5rem;
+    }
 }

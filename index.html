@@ -11,6 +11,18 @@
     <div id="game-container">
         <h1>Liquid Sort Game</h1>
         <div id="version-info"></div>
+        <div id="game-controls">
+            <div class="control-group">
+                <label for="difficulty-slider">Difficulty (Extra Containers): <span id="difficulty-value">2</span></label>
+                <input type="range" id="difficulty-slider" min="1" max="4" value="2" class="slider">
+            </div>
+            <div class="control-group">
+                <label for="complexity-slider">Complexity (Filled Containers): <span id="complexity-value">6</span></label>
+                <input type="range" id="complexity-slider" min="6" max="20" value="6" class="slider">
+            </div>
+            <button id="apply-settings">Apply Settings</button>
+        </div>
+        <div id="move-counter">Moves: 0</div>
         <div id="containers"></div>
         <button id="reset-button">Reset Game</button>
     </div>
