@@ -30,12 +30,6 @@ class Game {
             settingsClick: null
         };
         
-        // Store original settings to detect changes
-        this.originalSettings = {
-            difficulty: this.difficulty,
-            complexity: this.complexity
-        };
-        
         this.init();
     }
 
@@ -73,7 +67,6 @@ class Game {
         // Log all button elements before trying to get them
         console.log('All buttons:', document.querySelectorAll('button'));
         const applyButton = document.getElementById('apply-settings');
-        const settingsPanel = document.getElementById('game-controls');
         
         // Log what we found
         console.log('Apply button:', applyButton);
@@ -176,8 +169,16 @@ class Game {
         const complexitySlider = document.getElementById('complexity-slider');
         const difficultyValue = document.getElementById('difficulty-value');
         const complexityValue = document.getElementById('complexity-value');
+        // Log all button elements before trying to get them
+        console.log('All buttons:', document.querySelectorAll('button'));
         const applyButton = document.getElementById('apply-settings');
         
+        // Log what we found
+        console.log('Apply button:', applyButton);
+        console.log('Settings button:', settingsButton);
+        console.log('Settings panel:', settingsPanel);
+
+        console.log('Setup Controls Debug:');
         console.log('Settings button:', settingsButton);
         console.log('Settings panel:', settingsPanel);
         console.log('Settings panel initial classes:', settingsPanel?.className);
@@ -216,6 +217,9 @@ class Game {
         }
         if (this.eventListeners.applyClick && applyButton) {
             applyButton.removeEventListener('click', this.eventListeners.applyClick);
+        }
+        if (this.eventListeners.settingsClick) {
+            settingsButton.removeEventListener('click', this.eventListeners.settingsClick);
         }
 
         // Create and store new event listeners - with null checks
@@ -289,68 +293,6 @@ class Game {
             console.log('Settings event listener attached successfully');
         } catch (error) {
             console.error('Error attaching settings click event:', error);
-        }
-    }
-
-    openSettingsModal() {
-        const settingsModal = document.getElementById('settings-modal');
-        
-        // Sync modal controls with current game settings
-        const modalDifficultySlider = document.getElementById('modal-difficulty-slider');
-        const modalComplexitySlider = document.getElementById('modal-complexity-slider');
-        const modalDifficultyValue = document.getElementById('modal-difficulty-value');
-        const modalComplexityValue = document.getElementById('modal-complexity-value');
-        
-        modalDifficultySlider.value = this.difficulty;
-        modalComplexitySlider.value = this.complexity;
-        modalDifficultyValue.textContent = this.difficulty;
-        modalComplexityValue.textContent = this.complexity;
-        
-        settingsModal.classList.remove('hidden');
-        
-        // Store current settings as original when opening
-        this.originalSettings = {
-            difficulty: this.difficulty,
-            complexity: this.complexity
-        };
-        
-        // Disable scrolling on body
-        document.body.style.overflow = 'hidden';
-    }
-
-    closeSettingsModal() {
-        const settingsModal = document.getElementById('settings-modal');
-        settingsModal.classList.add('hidden');
-        
-        // Re-enable scrolling on body
-        document.body.style.overflow = '';
-    }
-
-    applySettings() {
-        const modalDifficultySlider = document.getElementById('modal-difficulty-slider');
-        const modalComplexitySlider = document.getElementById('modal-complexity-slider');
-        
-        const newDifficulty = parseInt(modalDifficultySlider.value);
-        const newComplexity = parseInt(modalComplexitySlider.value);
-        
-        // Check if settings have changed
-        const settingsChanged = 
-            newDifficulty !== this.originalSettings.difficulty || 
-            newComplexity !== this.originalSettings.complexity;
-        
-        // Update game settings
-        this.difficulty = newDifficulty;
-        this.complexity = newComplexity;
-        
-        // Close modal
-        this.closeSettingsModal();
-        
-        // Reset game only if settings changed
-        if (settingsChanged) {
-            console.log('Settings changed, resetting game...');
-            this.resetGame();
-        } else {
-            console.log('No settings changed, keeping current game');
         }
     }
 
