@@ -21,10 +21,19 @@ class Game {
         this.eventListeners = {
             containerClick: null,
             resetClick: null,
+            settingsClick: null,
+            closeSettingsClick: null,
+            modalOverlayClick: null,
             difficultyInput: null,
             complexityInput: null,
             applyClick: null,
             settingsClick: null
+        };
+        
+        // Store original settings to detect changes
+        this.originalSettings = {
+            difficulty: this.difficulty,
+            complexity: this.complexity
         };
         
         this.init();
@@ -45,8 +54,6 @@ class Game {
         const complexitySlider = document.getElementById('complexity-slider');
         const difficultyValue = document.getElementById('difficulty-value');
         const complexityValue = document.getElementById('complexity-value');
-        // Log all button elements before trying to get them
-        console.log('All buttons:', document.querySelectorAll('button'));
         const applyButton = document.getElementById('apply-settings');
         const settingsButton = document.getElementById('settings-toggle');
         const settingsPanel = document.getElementById('game-controls');
@@ -76,102 +83,44 @@ class Game {
             return;
         }
 
-        // Update slider values - only if elements exist
-        if (difficultySlider && complexitySlider && difficultyValue && complexityValue) {
-            difficultySlider.value = this.difficulty;
-            complexitySlider.value = this.complexity;
-            difficultyValue.textContent = this.difficulty;
-            complexityValue.textContent = this.complexity;
-        } else {
-            console.warn('Some slider elements not found, skipping value updates');
-        }
+        // Update slider values
+        difficultySlider.value = this.difficulty;
+        complexitySlider.value = this.complexity;
+        difficultyValue.textContent = this.difficulty;
+        complexityValue.textContent = this.complexity;
 
-        // Remove existing event listeners before adding new ones - with null checks
-        if (this.eventListeners.difficultyInput && difficultySlider) {
+        // Remove existing event listeners before adding new ones
+        if (this.eventListeners.difficultyInput) {
             difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
         }
-        if (this.eventListeners.complexityInput && complexitySlider) {
+        if (this.eventListeners.complexityInput) {
             complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
         }
         if (this.eventListeners.applyClick && applyButton) {
             applyButton.removeEventListener('click', this.eventListeners.applyClick);
         }
-        if (this.eventListeners.settingsClick) {
-            settingsButton.removeEventListener('click', this.eventListeners.settingsClick);
-        }
 
-        // Create and store new event listeners - with null checks
-        if (difficultySlider && difficultyValue) {
-            this.eventListeners.difficultyInput = (e) => {
-                difficultyValue.textContent = e.target.value;
-            };
-        }
-
-        if (complexitySlider && complexityValue) {
-            this.eventListeners.complexityInput = (e) => {
-                complexityValue.textContent = e.target.value;
-            };
-        }
-
-        if (applyButton) {
-            this.eventListeners.applyClick = () => {
-                this.difficulty = parseInt(difficultySlider?.value || this.difficulty);
-                this.complexity = parseInt(complexitySlider?.value || this.complexity);
-                this.resetGame();
-            };
-        }
-
-        this.eventListeners.settingsClick = () => {
-            console.log('Settings button clicked!');
-            const panel = document.getElementById('game-controls');
-            const settingsButton = document.getElementById('settings-toggle');
-            
-            if (!panel) {
-                console.error('Settings panel not found!');
-                return;
-            }
-            
-            const isHidden = panel.classList.contains('hidden');
-            
-            if (isHidden) {
-                panel.classList.remove('hidden');
-                settingsButton.textContent = 'Hide Settings';
-                settingsButton.setAttribute('aria-expanded', 'true');
-                console.log('Settings panel opened');
-            } else {
-                panel.classList.add('hidden');
-                settingsButton.textContent = 'Settings';
-                settingsButton.setAttribute('aria-expanded', 'false');
-                console.log('Settings panel closed');
-            }
+        // Create and store new event listeners
+        this.eventListeners.difficultyInput = (e) => {
+            difficultyValue.textContent = e.target.value;
         };
 
-        // Add event listeners for real-time value updates - with null checks
-        if (difficultySlider && this.eventListeners.difficultyInput) {
-            difficultySlider.addEventListener('input', this.eventListeners.difficultyInput);
-        }
-        if (complexitySlider && this.eventListeners.complexityInput) {
-            complexitySlider.addEventListener('input', this.eventListeners.complexityInput);
-        }
+        this.eventListeners.complexityInput = (e) => {
+            complexityValue.textContent = e.target.value;
+        };
 
-        // Apply settings button - with null check
-        if (applyButton && this.eventListeners.applyClick) {
-            applyButton.addEventListener('click', this.eventListeners.applyClick);
-        }
-        
-        // Settings toggle button
-        try {
-            console.log('About to attach click event to settings button');
-            settingsButton.addEventListener('click', (e) => {
-                console.log('Settings button clicked!');
-                e.preventDefault();
-                e.stopPropagation();
-                this.eventListeners.settingsClick();
-            });
-            console.log('Settings event listener attached successfully');
-        } catch (error) {
-            console.error('Error attaching settings click event:', error);
-        }
+        this.eventListeners.applyClick = () => {
+            this.difficulty = parseInt(difficultySlider.value);
+            this.complexity = parseInt(complexitySlider.value);
+            this.resetGame();
+        };
+
+        // Add event listeners for real-time value updates
+        difficultySlider.addEventListener('input', this.eventListeners.difficultyInput);
+        complexitySlider.addEventListener('input', this.eventListeners.complexityInput);
+
+        // Apply settings button
+        applyButton.addEventListener('click', this.eventListeners.applyClick);
     }
 
     createContainers() {
@@ -737,7 +686,6 @@ class Game {
         const difficultySlider = document.getElementById('difficulty-slider');
         const complexitySlider = document.getElementById('complexity-slider');
         const applyButton = document.getElementById('apply-settings');
-        const settingsButton = document.getElementById('settings-toggle');
 
         if (this.eventListeners.difficultyInput) {
             difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
@@ -747,9 +695,6 @@ class Game {
         }
         if (this.eventListeners.applyClick) {
             applyButton.removeEventListener('click', this.eventListeners.applyClick);
-        }
-        if (this.eventListeners.settingsClick) {
-            settingsButton.removeEventListener('click', this.eventListeners.settingsClick);
         }
 
         // Remove drag and drop event listeners from all existing container elements
