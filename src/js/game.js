@@ -47,20 +47,29 @@ class Game {
     }
 
     setupControls() {
+        // Setup only modal controls since all main controls are removed
+        this.setupModalControls();
+    }
+
+    setupMainControls() {
+        // No main controls needed anymore - everything is in the modal
+    }
+
+    setupModalControls() {
         const settingsButton = document.getElementById('settings-button');
         const settingsModal = document.getElementById('settings-modal');
-        const closeSettingsButton = document.getElementById('close-settings');
-        const difficultySlider = document.getElementById('difficulty-slider');
-        const complexitySlider = document.getElementById('complexity-slider');
-        const difficultyValue = document.getElementById('difficulty-value');
-        const complexityValue = document.getElementById('complexity-value');
+        const closeSettingsButton = document.getElementById('close-settings-btn');
+        const modalDifficultySlider = document.getElementById('modal-difficulty-slider');
+        const modalComplexitySlider = document.getElementById('modal-complexity-slider');
+        const modalDifficultyValue = document.getElementById('modal-difficulty-value');
+        const modalComplexityValue = document.getElementById('modal-complexity-value');
         const applyButton = document.getElementById('apply-settings');
 
-        // Update slider values
-        difficultySlider.value = this.difficulty;
-        complexitySlider.value = this.complexity;
-        difficultyValue.textContent = this.difficulty;
-        complexityValue.textContent = this.complexity;
+        // Set initial values for modal controls
+        modalDifficultySlider.value = this.difficulty;
+        modalComplexitySlider.value = this.complexity;
+        modalDifficultyValue.textContent = this.difficulty;
+        modalComplexityValue.textContent = this.complexity;
 
         // Store original settings
         this.originalSettings = {
@@ -86,12 +95,12 @@ class Game {
             }
         };
 
-        this.eventListeners.difficultyInput = (e) => {
-            difficultyValue.textContent = e.target.value;
+        this.eventListeners.modalDifficultyInput = (e) => {
+            modalDifficultyValue.textContent = e.target.value;
         };
 
-        this.eventListeners.complexityInput = (e) => {
-            complexityValue.textContent = e.target.value;
+        this.eventListeners.modalComplexityInput = (e) => {
+            modalComplexityValue.textContent = e.target.value;
         };
 
         this.eventListeners.applyClick = () => {
@@ -102,8 +111,8 @@ class Game {
         settingsButton.addEventListener('click', this.eventListeners.settingsClick);
         closeSettingsButton.addEventListener('click', this.eventListeners.closeSettingsClick);
         settingsModal.addEventListener('click', this.eventListeners.modalOverlayClick);
-        difficultySlider.addEventListener('input', this.eventListeners.difficultyInput);
-        complexitySlider.addEventListener('input', this.eventListeners.complexityInput);
+        modalDifficultySlider.addEventListener('input', this.eventListeners.modalDifficultyInput);
+        modalComplexitySlider.addEventListener('input', this.eventListeners.modalComplexityInput);
         applyButton.addEventListener('click', this.eventListeners.applyClick);
 
         // Add keyboard support for closing modal
@@ -117,9 +126,9 @@ class Game {
     removeControlEventListeners() {
         const settingsButton = document.getElementById('settings-button');
         const settingsModal = document.getElementById('settings-modal');
-        const closeSettingsButton = document.getElementById('close-settings');
-        const difficultySlider = document.getElementById('difficulty-slider');
-        const complexitySlider = document.getElementById('complexity-slider');
+        const closeSettingsButton = document.getElementById('close-settings-btn');
+        const modalDifficultySlider = document.getElementById('modal-difficulty-slider');
+        const modalComplexitySlider = document.getElementById('modal-complexity-slider');
         const applyButton = document.getElementById('apply-settings');
 
         if (this.eventListeners.settingsClick) {
@@ -131,11 +140,11 @@ class Game {
         if (this.eventListeners.modalOverlayClick) {
             settingsModal.removeEventListener('click', this.eventListeners.modalOverlayClick);
         }
-        if (this.eventListeners.difficultyInput) {
-            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
+        if (this.eventListeners.modalDifficultyInput) {
+            modalDifficultySlider.removeEventListener('input', this.eventListeners.modalDifficultyInput);
         }
-        if (this.eventListeners.complexityInput) {
-            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
+        if (this.eventListeners.modalComplexityInput) {
+            modalComplexitySlider.removeEventListener('input', this.eventListeners.modalComplexityInput);
         }
         if (this.eventListeners.applyClick) {
             applyButton.removeEventListener('click', this.eventListeners.applyClick);
@@ -144,6 +153,18 @@ class Game {
 
     openSettingsModal() {
         const settingsModal = document.getElementById('settings-modal');
+        
+        // Sync modal controls with current game settings
+        const modalDifficultySlider = document.getElementById('modal-difficulty-slider');
+        const modalComplexitySlider = document.getElementById('modal-complexity-slider');
+        const modalDifficultyValue = document.getElementById('modal-difficulty-value');
+        const modalComplexityValue = document.getElementById('modal-complexity-value');
+        
+        modalDifficultySlider.value = this.difficulty;
+        modalComplexitySlider.value = this.complexity;
+        modalDifficultyValue.textContent = this.difficulty;
+        modalComplexityValue.textContent = this.complexity;
+        
         settingsModal.classList.remove('hidden');
         
         // Store current settings as original when opening
@@ -165,18 +186,18 @@ class Game {
     }
 
     applySettings() {
-        const difficultySlider = document.getElementById('difficulty-slider');
-        const complexitySlider = document.getElementById('complexity-slider');
+        const modalDifficultySlider = document.getElementById('modal-difficulty-slider');
+        const modalComplexitySlider = document.getElementById('modal-complexity-slider');
         
-        const newDifficulty = parseInt(difficultySlider.value);
-        const newComplexity = parseInt(complexitySlider.value);
+        const newDifficulty = parseInt(modalDifficultySlider.value);
+        const newComplexity = parseInt(modalComplexitySlider.value);
         
         // Check if settings have changed
         const settingsChanged = 
             newDifficulty !== this.originalSettings.difficulty || 
             newComplexity !== this.originalSettings.complexity;
         
-        // Update settings
+        // Update game settings
         this.difficulty = newDifficulty;
         this.complexity = newComplexity;
         

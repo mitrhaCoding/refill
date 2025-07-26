@@ -12,11 +12,8 @@
         <!-- Top Section -->
         <div id="top-section">
             <h1>Liquid Sort Game</h1>
-            <div id="game-info">
-                <div id="version-info"></div>
-                <div id="move-counter">Moves: 0</div>
-                <button id="settings-button">⚙️ Settings</button>
-            </div>
+            <div id="version-info"></div>
+            <button id="settings-button">⚙️ Settings</button>
         </div>
 
         <!-- Game Area -->
@@ -26,11 +23,12 @@
 
         <!-- Bottom Section -->
         <div id="bottom-section">
+            <div id="move-counter">Moves: 0</div>
             <button id="reset-button">🔄 Reset Game</button>
         </div>
     </div>
 
-    <!-- Settings Modal -->
+    <!-- Settings Modal Overlay -->
     <div id="settings-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -39,21 +37,22 @@
             </div>
             <div class="modal-body">
                 <div class="control-group">
-                    <label for="difficulty-slider">
+                    <label for="modal-difficulty-slider">
                         <span class="control-label">Difficulty (Extra Containers)</span>
-                        <span id="difficulty-value" class="control-value">2</span>
+                        <span id="modal-difficulty-value" class="control-value">2</span>
                     </label>
-                    <input type="range" id="difficulty-slider" min="1" max="4" value="2" class="slider">
+                    <input type="range" id="modal-difficulty-slider" min="1" max="4" value="2" class="slider">
                     <div class="control-description">
                         More containers = easier sorting
                     </div>
                 </div>
+
                 <div class="control-group">
-                    <label for="complexity-slider">
+                    <label for="modal-complexity-slider">
                         <span class="control-label">Complexity (Filled Containers)</span>
-                        <span id="complexity-value" class="control-value">6</span>
+                        <span id="modal-complexity-value" class="control-value">6</span>
                     </label>
-                    <input type="range" id="complexity-slider" min="6" max="20" value="6" class="slider">
+                    <input type="range" id="modal-complexity-slider" min="6" max="20" value="6" class="slider">
                     <div class="control-description">
                         More colors = harder puzzle
                     </div>
