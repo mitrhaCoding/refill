@@ -20,9 +20,18 @@ class Game {
         this.eventListeners = {
             containerClick: null,
             resetClick: null,
+            settingsClick: null,
+            closeSettingsClick: null,
+            modalOverlayClick: null,
             difficultyInput: null,
             complexityInput: null,
             applyClick: null
+        };
+        
+        // Store original settings to detect changes
+        this.originalSettings = {
+            difficulty: this.difficulty,
+            complexity: this.complexity
         };
         
         this.init();
@@ -38,6 +47,9 @@ class Game {
     }
 
     setupControls() {
+        const settingsButton = document.getElementById('settings-button');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsButton = document.getElementById('close-settings');
         const difficultySlider = document.getElementById('difficulty-slider');
         const complexitySlider = document.getElementById('complexity-slider');
         const difficultyValue = document.getElementById('difficulty-value');
@@ -50,18 +62,30 @@ class Game {
         difficultyValue.textContent = this.difficulty;
         complexityValue.textContent = this.complexity;
 
+        // Store original settings
+        this.originalSettings = {
+            difficulty: this.difficulty,
+            complexity: this.complexity
+        };
+
         // Remove existing event listeners before adding new ones
-        if (this.eventListeners.difficultyInput) {
-            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
-        }
-        if (this.eventListeners.complexityInput) {
-            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
-        }
-        if (this.eventListeners.applyClick) {
-            applyButton.removeEventListener('click', this.eventListeners.applyClick);
-        }
+        this.removeControlEventListeners();
 
         // Create and store new event listeners
+        this.eventListeners.settingsClick = () => {
+            this.openSettingsModal();
+        };
+
+        this.eventListeners.closeSettingsClick = () => {
+            this.closeSettingsModal();
+        };
+
+        this.eventListeners.modalOverlayClick = (e) => {
+            if (e.target === settingsModal) {
+                this.closeSettingsModal();
+            }
+        };
+
         this.eventListeners.difficultyInput = (e) => {
             difficultyValue.textContent = e.target.value;
         };
@@ -71,17 +95,101 @@ class Game {
         };
 
         this.eventListeners.applyClick = () => {
-            this.difficulty = parseInt(difficultySlider.value);
-            this.complexity = parseInt(complexitySlider.value);
-            this.resetGame();
+            this.applySettings();
         };
 
-        // Add event listeners for real-time value updates
+        // Add event listeners
+        settingsButton.addEventListener('click', this.eventListeners.settingsClick);
+        closeSettingsButton.addEventListener('click', this.eventListeners.closeSettingsClick);
+        settingsModal.addEventListener('click', this.eventListeners.modalOverlayClick);
         difficultySlider.addEventListener('input', this.eventListeners.difficultyInput);
         complexitySlider.addEventListener('input', this.eventListeners.complexityInput);
-
-        // Apply settings button
         applyButton.addEventListener('click', this.eventListeners.applyClick);
+
+        // Add keyboard support for closing modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !settingsModal.classList.contains('hidden')) {
+                this.closeSettingsModal();
+            }
+        });
+    }
+
+    removeControlEventListeners() {
+        const settingsButton = document.getElementById('settings-button');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsButton = document.getElementById('close-settings');
+        const difficultySlider = document.getElementById('difficulty-slider');
+        const complexitySlider = document.getElementById('complexity-slider');
+        const applyButton = document.getElementById('apply-settings');
+
+        if (this.eventListeners.settingsClick) {
+            settingsButton.removeEventListener('click', this.eventListeners.settingsClick);
+        }
+        if (this.eventListeners.closeSettingsClick) {
+            closeSettingsButton.removeEventListener('click', this.eventListeners.closeSettingsClick);
+        }
+        if (this.eventListeners.modalOverlayClick) {
+            settingsModal.removeEventListener('click', this.eventListeners.modalOverlayClick);
+        }
+        if (this.eventListeners.difficultyInput) {
+            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
+        }
+        if (this.eventListeners.complexityInput) {
+            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
+        }
+        if (this.eventListeners.applyClick) {
+            applyButton.removeEventListener('click', this.eventListeners.applyClick);
+        }
+    }
+
+    openSettingsModal() {
+        const settingsModal = document.getElementById('settings-modal');
+        settingsModal.classList.remove('hidden');
+        
+        // Store current settings as original when opening
+        this.originalSettings = {
+            difficulty: this.difficulty,
+            complexity: this.complexity
+        };
+        
+        // Disable scrolling on body
+        document.body.style.overflow = 'hidden';
+    }
+
+    closeSettingsModal() {
+        const settingsModal = document.getElementById('settings-modal');
+        settingsModal.classList.add('hidden');
+        
+        // Re-enable scrolling on body
+        document.body.style.overflow = '';
+    }
+
+    applySettings() {
+        const difficultySlider = document.getElementById('difficulty-slider');
+        const complexitySlider = document.getElementById('complexity-slider');
+        
+        const newDifficulty = parseInt(difficultySlider.value);
+        const newComplexity = parseInt(complexitySlider.value);
+        
+        // Check if settings have changed
+        const settingsChanged = 
+            newDifficulty !== this.originalSettings.difficulty || 
+            newComplexity !== this.originalSettings.complexity;
+        
+        // Update settings
+        this.difficulty = newDifficulty;
+        this.complexity = newComplexity;
+        
+        // Close modal
+        this.closeSettingsModal();
+        
+        // Reset game only if settings changed
+        if (settingsChanged) {
+            console.log('Settings changed, resetting game...');
+            this.resetGame();
+        } else {
+            console.log('No settings changed, keeping current game');
+        }
     }
 
     createContainers() {
@@ -669,20 +777,8 @@ class Game {
             resetButton.removeEventListener('click', this.eventListeners.resetClick);
         }
 
-        // Remove control event listeners
-        const difficultySlider = document.getElementById('difficulty-slider');
-        const complexitySlider = document.getElementById('complexity-slider');
-        const applyButton = document.getElementById('apply-settings');
-
-        if (this.eventListeners.difficultyInput) {
-            difficultySlider.removeEventListener('input', this.eventListeners.difficultyInput);
-        }
-        if (this.eventListeners.complexityInput) {
-            complexitySlider.removeEventListener('input', this.eventListeners.complexityInput);
-        }
-        if (this.eventListeners.applyClick) {
-            applyButton.removeEventListener('click', this.eventListeners.applyClick);
-        }
+        // Remove control event listeners (including modal events)
+        this.removeControlEventListeners();
 
         // Remove drag and drop event listeners from all existing container elements
         const existingContainers = document.querySelectorAll('.container');
