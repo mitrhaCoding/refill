@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  liquid-sort-game:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: liquid-sort-game
+    ports:
+      - "8091:80"
+    restart: unless-stopped
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.liquid-sort-game.rule=Host(`liquid-sort-game.localhost`)"
+      - "traefik.http.services.liquid-sort-game.loadbalancer.server.port=80"
+    volumes:
+      # Optional: Mount logs for debugging
+      - ./logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: liquid-sort-network

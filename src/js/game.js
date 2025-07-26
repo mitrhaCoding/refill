@@ -181,10 +181,6 @@ class Game {
     }
 
     async fetchVersionFromGitHub() {
-        // TEMPORARY: Clear cache to force fresh calculation
-        localStorage.removeItem('version-cache-time-v3');
-        localStorage.removeItem('cached-version-v3');
-        
         // Check cache first (cache for 5 minutes for faster testing)
         const cacheTime = localStorage.getItem('version-cache-time-v3');
         const cachedVersion = localStorage.getItem('cached-version-v3');
