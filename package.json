@@ -1,0 +1,25 @@
+{
+  "name": "liquid-sort-game",
+  "version": "1.0.0",
+  "description": "A web-based game where users sort containers with liquid.",
+  "main": "src/js/game.js",
+  "scripts": {
+    "start": "live-server",
+    "build": "webpack"
+  },
+  "keywords": [
+    "game",
+    "liquid",
+    "sorting"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "live-server": "^1.2.1",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^4.0.0"
+  },
+  "devDependencies": {
+    "webpack-dev-server": "^3.11.0"
+  }
+}
