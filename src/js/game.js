@@ -13,8 +13,28 @@ class Game {
     init() {
         this.createContainers();
         this.createLiquids();
+        this.displayVersion();
         this.render();
         this.addEventListeners();
+    }
+
+    displayVersion() {
+        // Try to fetch version from version.ver file
+        fetch('./version.ver')
+            .then(response => response.text())
+            .then(version => {
+                const versionDiv = document.getElementById('version-info');
+                if (versionDiv) {
+                    versionDiv.textContent = `v${version.trim()}`;
+                }
+            })
+            .catch(() => {
+                // Fallback to package.json version or default
+                const versionDiv = document.getElementById('version-info');
+                if (versionDiv) {
+                    versionDiv.textContent = 'v0.1.0';
+                }
+            });
     }
 
     createContainers() {

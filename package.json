@@ -5,7 +5,12 @@
   "main": "src/js/game.js",
   "scripts": {
     "start": "live-server",
-    "build": "webpack"
+    "build": "webpack",
+    "version:auto": "node scripts/version-manager.js",
+    "version:major": "node scripts/version-manager.js major",
+    "version:minor": "node scripts/version-manager.js minor",
+    "version:patch": "node scripts/version-manager.js patch",
+    "version:current": "node scripts/version-manager.js current"
   },
   "keywords": [
     "game",
