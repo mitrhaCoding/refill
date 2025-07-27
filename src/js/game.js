@@ -581,6 +581,7 @@ class Game {
     debugValidMoves() {
         console.log('=== DEBUG: Checking all possible moves ===');
         let validMoves = 0;
+        const allMoves = [];
         
         for (let i = 0; i < this.containers.length; i++) {
             const sourceContainer = this.containers[i];
@@ -598,8 +599,24 @@ class Game {
                 const canPour = sourceContainer.canPourTo(targetContainer);
                 
                 if (canPour) {
-                    validMoves++;
-                    console.log(`  ✅ Can pour to container ${j} (${targetContainer.isEmpty() ? 'empty' : 'top color: ' + targetContainer.getTopLiquid().color})`);
+                    const consecutiveLiquids = sourceContainer.getConsecutiveTopLiquids();
+                    const availableSpace = targetContainer.getAvailableSpace();
+                    const liquidsToMove = Math.min(consecutiveLiquids.length, availableSpace);
+                    
+                    if (liquidsToMove > 0) {
+                        const move = { 
+                            from: i, 
+                            to: j, 
+                            liquidsToMove,
+                            color: sourceContainer.getTopLiquid().color
+                        };
+                        
+                        const isProgressive = !isMoveNonProgressive(this.containers, move);
+                        allMoves.push({...move, isProgressive});
+                        validMoves++;
+                        
+                        console.log(`  ✅ ${i} → ${j}: Move ${liquidsToMove} ${move.color} liquid(s) ${isProgressive ? '(PROGRESSIVE)' : '(NON-PROGRESSIVE)'}`);
+                    }
                 } else {
                     console.log(`  ❌ Cannot pour to container ${j} (${targetContainer.isFull() ? 'full' : targetContainer.isEmpty() ? 'empty but other reason' : 'top color: ' + targetContainer.getTopLiquid().color})`);
                 }
@@ -608,12 +625,39 @@ class Game {
         
         console.log(`=== Total valid moves: ${validMoves} ===`);
         
+        // Analyze move quality
+        const progressiveMoves = allMoves.filter(m => m.isProgressive);
+        const nonProgressiveMoves = allMoves.filter(m => !m.isProgressive);
+        
+        console.log(`Progressive moves: ${progressiveMoves.length}`);
+        console.log(`Non-progressive moves: ${nonProgressiveMoves.length}`);
+        
+        if (progressiveMoves.length === 0 && validMoves > 0) {
+            console.log('⚠️  NO PROGRESSIVE MOVES FOUND - This should trigger a loss!');
+        }
+        
+        // Check lose condition
+        const shouldLose = checkLoseCondition(this.containers);
+        console.log(`Lose condition result: ${shouldLose}`);
+        
         if (validMoves === 0) {
             console.log('NO VALID MOVES - SHOULD TRIGGER LOSE CONDITION');
+            this.checkGameEndConditions();
+        } else if (shouldLose) {
+            console.log('LOSE CONDITION MET - All moves are futile!');
             this.checkGameEndConditions();
         }
         
         console.log(`Found ${validMoves} valid moves. Check console for details.`);
+        
+        // Return detailed analysis for further inspection
+        return {
+            totalMoves: validMoves,
+            progressiveMoves: progressiveMoves.length,
+            nonProgressiveMoves: nonProgressiveMoves.length,
+            shouldLose,
+            moves: allMoves
+        };
     }
 
     addDragEventsToContainer(containerDiv, index) {
@@ -837,10 +881,39 @@ class Game {
             moveCounter.textContent = `Moves: ${this.moves}`;
         }
     }
+
+    // Debug method to force check losing condition
+    forceCheckLose() {
+        console.log('=== FORCE CHECKING LOSE CONDITION ===');
+        const shouldLose = checkLoseCondition(this.containers);
+        console.log(`Lose condition result: ${shouldLose}`);
+        
+        if (shouldLose) {
+            console.log('Triggering loss...');
+            this.gameState = 'lost';
+            this.showGameOverModal('Game Over', 
+                '😔 No more moves available!', 
+                'Try adjusting the difficulty or reset the game to start over.', 
+                '#dc3545');
+        } else {
+            console.log('Game is still playable');
+        }
+        
+        return shouldLose;
+    }
 }
 
 console.log('Script loaded');
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOMContentLoaded fired');
     const game = new Game();
+    
+    // Make game globally accessible for debugging
+    window.game = game;
+    window.debugMoves = () => game.debugValidMoves();
+    window.forceCheckLose = () => game.forceCheckLose();
+    
+    console.log('Game instance available globally as window.game');
+    console.log('To debug moves, call: debugMoves()');
+    console.log('To force check lose condition, call: forceCheckLose()');
 });

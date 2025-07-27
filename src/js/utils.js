@@ -63,13 +63,28 @@ function getAllValidMoves(containers) {
 }
 
 function allMovesAreFutile(containers, validMoves) {
-    // If there are 3 or fewer moves, check if they're all cyclical
+    // Check if all available moves are non-progressive regardless of count
+    // A game is stuck when all moves are just shuffling liquids without making progress
+    
+    // If there are very few moves, they're more likely to be futile
     if (validMoves.length <= 3) {
         return validMoves.every(move => isMoveNonProgressive(containers, move));
     }
     
-    // If there are more moves, the game is probably not stuck
-    return false;
+    // For games with more moves, check if a high percentage are futile
+    // This handles cases where there are many possible moves but they're all cyclical
+    const futileMoves = validMoves.filter(move => isMoveNonProgressive(containers, move));
+    const futilePercentage = futileMoves.length / validMoves.length;
+    
+    // If 80% or more of moves are futile, consider the game stuck
+    // Also check for specific patterns that indicate a stuck state
+    if (futilePercentage >= 0.8) {
+        return true;
+    }
+    
+    // Additional check: if all moves just shuffle between containers without 
+    // creating any complete containers or meaningful separations
+    return areAllMovesJustShuffling(containers, validMoves);
 }
 
 function isMoveNonProgressive(containers, move) {
@@ -84,15 +99,19 @@ function isMoveNonProgressive(containers, move) {
             return false; // Progressive - empties a container
         }
         
-        // Progressive if it separates different colors
+        // Progressive if it separates different colors meaningfully
         if (sourceContainer.liquids.length > liquidsToMove) {
             const remainingTopLiquid = sourceContainer.liquids[sourceContainer.liquids.length - liquidsToMove - 1];
             if (remainingTopLiquid.color !== color) {
-                return false; // Progressive - separating colors
+                // Check if the remaining consecutive liquids form a meaningful group
+                const remainingConsecutive = getConsecutiveCount(sourceContainer.liquids, sourceContainer.liquids.length - liquidsToMove - 1);
+                if (remainingConsecutive >= 2) {
+                    return false; // Progressive - meaningful color separation
+                }
             }
         }
         
-        // Otherwise, check if this move can be immediately reversed
+        // Check if this move can be immediately reversed (cyclical)
         return canMoveBeImmediatelyReversed(containers, move);
     }
     
@@ -108,9 +127,15 @@ function isMoveNonProgressive(containers, move) {
             }
         }
         
-        // Progressive if it significantly consolidates colors
+        // Progressive if it significantly consolidates colors (2+ liquids)
         if (liquidsToMove >= 2) {
             return false; // Moving multiple of same color is usually progressive
+        }
+        
+        // Progressive if it creates a longer consecutive sequence
+        const targetConsecutiveAfter = targetContainer.liquids.filter(l => l.color === color).length + liquidsToMove;
+        if (targetConsecutiveAfter >= 3) {
+            return false; // Building up a good sequence
         }
         
         // For single liquid moves, check if it can be immediately reversed
@@ -158,6 +183,67 @@ function canMoveBeImmediatelyReversed(containers, move) {
     }
     
     return false; // Different colors = can't pour back = potentially progressive
+}
+
+function areAllMovesJustShuffling(containers, validMoves) {
+    // Check if all moves are just moving liquids between containers
+    // without making meaningful progress toward completion
+    
+    // Count how many containers are already complete (single color, full)
+    const completeContainers = containers.filter(c => c.isCompletelyFilled()).length;
+    
+    // Check if any move would complete a container or meaningfully separate colors
+    for (const move of validMoves) {
+        const { from, to, liquidsToMove, color } = move;
+        const sourceContainer = containers[from];
+        const targetContainer = containers[to];
+        
+        // Progressive if it would complete a container
+        if (targetContainer.liquids.length + liquidsToMove === targetContainer.capacity) {
+            const targetAllSameColor = targetContainer.liquids.every(liquid => liquid.color === color);
+            if (targetAllSameColor) {
+                return false; // Found a completing move
+            }
+        }
+        
+        // Progressive if it would empty a container completely
+        if (liquidsToMove === sourceContainer.liquids.length) {
+            return false; // Found an emptying move
+        }
+        
+        // Progressive if it would separate different colors meaningfully
+        if (sourceContainer.liquids.length > liquidsToMove) {
+            const remainingTopLiquid = sourceContainer.liquids[sourceContainer.liquids.length - liquidsToMove - 1];
+            if (remainingTopLiquid.color !== color) {
+                // This separates colors - check if it leads to better sorting
+                const remainingConsecutive = getConsecutiveCount(sourceContainer.liquids, sourceContainer.liquids.length - liquidsToMove - 1);
+                if (remainingConsecutive >= 2) {
+                    return false; // Meaningful color separation
+                }
+            }
+        }
+    }
+    
+    // If no meaningful moves found, it's just shuffling
+    return true;
+}
+
+function getConsecutiveCount(liquids, startIndex) {
+    if (startIndex < 0 || startIndex >= liquids.length) return 0;
+    
+    const color = liquids[startIndex].color;
+    let count = 1;
+    
+    // Count backwards from startIndex
+    for (let i = startIndex - 1; i >= 0; i--) {
+        if (liquids[i].color === color) {
+            count++;
+        } else {
+            break;
+        }
+    }
+    
+    return count;
 }
 
 function hasValidMoves(containers) {
