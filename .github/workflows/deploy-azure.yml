@@ -1,0 +1,70 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  RESOURCE_GROUP: poland-second-rg
+  CONTAINER_APP: liquid-sort-game-capp
+  REGISTRY_NAME: liquidsortregistry
+  IMAGE_NAME: liquid-sort-game
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Login to Azure Container Registry
+      run: az acr login --name ${{ env.REGISTRY_NAME }}
+
+    - name: Build and push Docker image
+      run: |
+        # Build image
+        docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker build -t ${{ env.IMAGE_NAME }}:latest .
+        
+        # Tag for ACR
+        docker tag ${{ env.IMAGE_NAME }}:${{ github.sha }} ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker tag ${{ env.IMAGE_NAME }}:latest ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+        
+        # Push to ACR
+        docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+
+    - name: Deploy to Container Apps
+      run: |
+        az containerapp update \
+          --name ${{ env.CONTAINER_APP }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --image ${{ env.REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          --set-env-vars "NGINX_HOST=0.0.0.0" "NGINX_PORT=80"
+
+    - name: Get application URL
+      run: |
+        APP_URL=$(az containerapp show --name ${{ env.CONTAINER_APP }} --resource-group ${{ env.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv)
+        echo "🌐 Application deployed at: https://$APP_URL"
+        echo "APP_URL=https://$APP_URL" >> $GITHUB_ENV
+
+    - name: Comment PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '🚀 **Deployment Complete!**\n\n🎮 **Liquid Sort Game** has been deployed to Azure Container Apps.\n\n🌐 **Preview URL:** ${{ env.APP_URL }}\n\n---\n*This deployment was triggered by commit ${{ github.sha }}*'
+          })
